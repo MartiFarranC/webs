@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Les meves webs</title>
+<meta name="description" content="Directori de totes les webs de MartiFarranC publicades a GitHub Pages.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232f6fed'/%3E%3Cpath d='M14 20h36M14 32h36M14 44h24' stroke='white' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1b1f24; --muted: #5f6b7a;
+    --border: #e3e6ea; --accent: #2f6fed; --shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0f1216; --card: #181c22; --text: #e8ebef; --muted: #98a2b0;
+      --border: #272d36; --accent: #6e9bff; --shadow: none; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 40px 16px 64px; }
+  header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 28px; }
+  h1 { margin: 0; font-size: 28px; letter-spacing: -.01em; }
+  .sub { margin: 4px 0 0; color: var(--muted); font-size: 15px; }
+  input[type=search] { width: 260px; max-width: 100%; padding: 10px 14px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--card); color: var(--text); font: inherit; }
+  input[type=search]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  a.card { display: flex; gap: 14px; padding: 18px; background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; box-shadow: var(--shadow); color: inherit; text-decoration: none;
+    transition: transform .12s ease, border-color .12s ease; min-width: 0; }
+  a.card:hover, a.card:focus-visible { transform: translateY(-2px); border-color: var(--accent); outline: none; }
+  .logo { flex: none; width: 48px; height: 48px; border-radius: 12px; overflow: hidden; display: grid; place-items: center;
+    background: var(--bg); border: 1px solid var(--border); }
+  .logo img { width: 32px; height: 32px; object-fit: contain; }
+  .logo .letter { font-weight: 700; font-size: 22px; color: #fff; width: 100%; height: 100%; display: grid; place-items: center; }
+  .info { min-width: 0; }
+  .name { font-weight: 600; font-size: 17px; margin: 0; overflow-wrap: anywhere; }
+  .desc { margin: 4px 0 8px; color: var(--muted); font-size: 14px;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .url { font-size: 13px; color: var(--accent); overflow-wrap: anywhere; }
+  .status { color: var(--muted); padding: 32px 0; text-align: center; }
+  footer { margin-top: 40px; color: var(--muted); font-size: 13px; text-align: center; }
+  footer a { color: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Les meves webs</h1>
+      <p class="sub" id="count">Carregant…</p>
+    </div>
+    <input type="search" id="q" placeholder="Cerca una web…" aria-label="Cerca una web">
+  </header>
+  <div class="grid" id="grid"></div>
+  <p class="status" id="status" hidden></p>
+  <footer>
+    Llista generada automàticament a partir dels repositoris de
+    <a href="https://github.com/MartiFarranC" id="ghlink">GitHub</a> amb GitHub Pages activat.
+  </footer>
+</main>
+
+<script>
+(() => {
+  const USER = "MartiFarranC";
+  const SELF = "webs";               // aquest mateix repositori no surt a la llista
+  const EXCLUDE = [SELF];            // afegeix aquí noms de repos que vulguis amagar
+  const CACHE_KEY = "webs-cache-v1";
+  const CACHE_MS = 30 * 60 * 1000;   // 30 min, per no gastar el límit de l'API de GitHub
+
+  const grid = document.getElementById("grid");
+  const status = document.getElementById("status");
+  const count = document.getElementById("count");
+  const q = document.getElementById("q");
+  let sites = [];
+
+  const store = {
+    get() { try { const c = JSON.parse(localStorage.getItem(CACHE_KEY)); return c && Date.now() - c.t < CACHE_MS ? c.d : null; } catch { return null; } },
+    set(d) { try { localStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), d })); } catch {} }
+  };
+
+  const host = `${USER.toLowerCase()}.github.io`;
+  function siteUrl(r) {
+    if (r.homepage && /^https?:\/\//.test(r.homepage)) return r.homepage.endsWith("/") || /\.\w+$/.test(r.homepage) ? r.homepage : r.homepage + "/";
+    if (r.name.toLowerCase() === host) return `https://${host}/`;
+    return `https://${host}/${r.name}/`;
+  }
+  const prettyName = n => n.replace(/[-_]+/g, " ").replace(/^\w/, c => c.toUpperCase());
+
+  async function fetchRepos() {
+    const all = [];
+    for (let page = 1; page < 10; page++) {
+      const res = await fetch(`https://api.github.com/users/${USER}/repos?per_page=100&page=${page}&sort=updated`);
+      if (!res.ok) throw new Error(res.status === 403 ? "S'ha superat el límit de l'API de GitHub. Torna-ho a provar d'aquí una estona." : `Error de GitHub (${res.status})`);
+      const batch = await res.json();
+      all.push(...batch);
+      if (batch.length < 100) break;
+    }
+    return all
+      .filter(r => r.has_pages && !EXCLUDE.includes(r.name) && !r.archived)
+      .map(r => ({ repo: r.name, name: prettyName(r.name), desc: r.description || "", url: siteUrl(r), updated: r.pushed_at }));
+  }
+
+  // Llegeix l'HTML de la web per treure'n el títol, la descripció i la icona (GitHub Pages permet CORS).
+  async function enrich(s) {
+    try {
+      const res = await fetch(s.url, { mode: "cors" });
+      if (!res.ok) return s;
+      const doc = new DOMParser().parseFromString(await res.text(), "text/html");
+      const title = doc.querySelector("title")?.textContent.trim();
+      const desc = doc.querySelector('meta[name="description"], meta[property="og:description"]')?.getAttribute("content")?.trim();
+      const icons = [...doc.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"], link[rel="shortcut icon"]')];
+      const best = icons.find(l => /apple-touch/.test(l.rel)) || icons.find(l => /svg/.test(l.getAttribute("type") || l.getAttribute("href"))) || icons[0];
+      return {
+        ...s,
+        title: title && title.length < 80 ? title : undefined,
+        desc: s.desc || desc || "",
+        icon: best ? new URL(best.getAttribute("href"), s.url).href : undefined
+      };
+    } catch { return s; }
+  }
+
+  function colorFor(str) {
+    let h = 0; for (const c of str) h = (h * 31 + c.charCodeAt(0)) % 360;
+    return `hsl(${h} 55% 48%)`;
+  }
+
+  function logoEl(s) {
+    const box = document.createElement("div");
+    box.className = "logo";
+    const letter = () => {
+      box.innerHTML = "";
+      const l = document.createElement("span");
+      l.className = "letter"; l.style.background = colorFor(s.repo);
+      l.textContent = (s.title || s.name).trim().charAt(0).toUpperCase();
+      box.appendChild(l);
+    };
+    const candidates = [s.icon, new URL("favicon.ico", s.url).href, new URL("favicon.svg", s.url).href, new URL("favicon.png", s.url).href].filter(Boolean);
+    const img = new Image(); img.alt = ""; img.loading = "lazy";
+    let i = 0;
+    img.onerror = () => { i++; if (i < candidates.length) img.src = candidates[i]; else letter(); };
+    img.src = candidates[0];
+    box.appendChild(img);
+    return box;
+  }
+
+  function render() {
+    const term = q.value.trim().toLowerCase();
+    const list = sites.filter(s => !term || [s.name, s.title, s.desc, s.repo].join(" ").toLowerCase().includes(term));
+    grid.innerHTML = "";
+    for (const s of list) {
+      const a = document.createElement("a");
+      a.className = "card"; a.href = s.url; a.target = "_blank"; a.rel = "noopener";
+      a.appendChild(logoEl(s));
+      const info = document.createElement("div"); info.className = "info";
+      const n = document.createElement("p"); n.className = "name"; n.textContent = s.title || s.name;
+      const d = document.createElement("p"); d.className = "desc"; d.textContent = s.desc || `Repositori ${s.repo}`;
+      const u = document.createElement("div"); u.className = "url"; u.textContent = s.url.replace(/^https?:\/\//, "").replace(/\/$/, "");
+      info.append(n, d, u); a.appendChild(info); grid.appendChild(a);
+    }
+    count.textContent = `${sites.length} ${sites.length === 1 ? "web publicada" : "webs publicades"} a GitHub Pages`;
+    status.hidden = list.length > 0;
+    if (!list.length) status.textContent = sites.length ? "Cap web coincideix amb la cerca." : "Encara no hi ha cap web publicada.";
+  }
+
+  async function load() {
+    const cached = store.get();
+    if (cached) { sites = cached; render(); return; }
+    try {
+      const base = await fetchRepos();
+      sites = base; render();
+      sites = await Promise.all(base.map(enrich));
+      store.set(sites); render();
+    } catch (e) {
+      count.textContent = "";
+      status.hidden = false; status.textContent = e.message;
+    }
+  }
+
+  document.getElementById("ghlink").textContent = USER;
+  q.addEventListener("input", render);
+  load();
+})();
+</script>
+</body>
+</html>
