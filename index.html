@@ -66,7 +66,11 @@
   const USER = "MartiFarranC";
   const SELF = "webs";               // aquest mateix repositori no surt a la llista
   const EXCLUDE = [SELF];            // afegeix aquí noms de repos que vulguis amagar
-  const CACHE_KEY = "webs-cache-v1";
+  // Repos amb domini propi (GitHub Pages redirigeix, però així l'enllaç és directe)
+  const OVERRIDES = { SioViuWeb: "https://www.sioviu.cat/" };
+  // Llista de reserva si l'API de GitHub no respon (revisada el 13/11/2026)
+  const FALLBACK = ["ProjectBuddy", "SioViuWeb", "Todolist", "tempCat", "monopoly-trrj", "gulusinaCAT"];
+  const CACHE_KEY = "webs-cache-v2";
   const CACHE_MS = 30 * 60 * 1000;   // 30 min, per no gastar el límit de l'API de GitHub
 
   const grid = document.getElementById("grid");
@@ -82,6 +86,7 @@
 
   const host = `${USER.toLowerCase()}.github.io`;
   function siteUrl(r) {
+    if (OVERRIDES[r.name]) return OVERRIDES[r.name];
     if (r.homepage && /^https?:\/\//.test(r.homepage)) return r.homepage.endsWith("/") || /\.\w+$/.test(r.homepage) ? r.homepage : r.homepage + "/";
     if (r.name.toLowerCase() === host) return `https://${host}/`;
     return `https://${host}/${r.name}/`;
@@ -106,6 +111,7 @@
   async function enrich(s) {
     try {
       const res = await fetch(s.url, { mode: "cors" });
+      if (res.status === 404) return { ...s, dead: true };   // Pages activat però la web no està aixecada
       if (!res.ok) return s;
       const doc = new DOMParser().parseFromString(await res.text(), "text/html");
       const title = doc.querySelector("title")?.textContent.trim();
@@ -170,11 +176,15 @@
     try {
       const base = await fetchRepos();
       sites = base; render();
-      sites = await Promise.all(base.map(enrich));
+      sites = (await Promise.all(base.map(enrich))).filter(s => !s.dead);
       store.set(sites); render();
     } catch (e) {
-      count.textContent = "";
-      status.hidden = false; status.textContent = e.message;
+      // Sense API: fem servir la llista de reserva perquè la pàgina no quedi buida
+      console.warn(e);
+      sites = FALLBACK.map(name => ({ repo: name, name: prettyName(name), desc: "", url: siteUrl({ name }) }));
+      render();
+      sites = (await Promise.all(sites.map(enrich))).filter(s => !s.dead);
+      render();
     }
   }
 
