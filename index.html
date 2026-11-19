@@ -8,65 +8,144 @@
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#2f6fed">
+<meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Webs">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
+  /* Tokens per rol (colors, espais de 4/8 px, radis, ombres, moviment) */
   :root {
-    --bg: #f6f7f9; --card: #ffffff; --text: #1b1f24; --muted: #5f6b7a;
-    --border: #e3e6ea; --accent: #2f6fed; --shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.05);
+    --bg: #f6f7f9; --card: #ffffff; --text: #1b1f24; --muted: #5a6573;
+    --border: #dfe3e8; --accent: #2a63d6; --accent-soft: #e8effc;
+    --warn-bg: #fff6e0; --warn-border: #e9c46a; --warn-text: #5c4300;
+    --skeleton: #e9ecf0;
+    --shadow: 0 1px 2px rgba(16,24,40,.04), 0 4px 16px rgba(16,24,40,.05);
+    --shadow-hover: 0 2px 4px rgba(16,24,40,.06), 0 10px 24px rgba(16,24,40,.08);
+    --radius: 14px; --radius-inner: 10px;
+    --ease-out: cubic-bezier(.2, .8, .2, 1);
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #0f1216; --card: #181c22; --text: #e8ebef; --muted: #98a2b0;
-      --border: #272d36; --accent: #6e9bff; --shadow: none; }
+    :root { --bg: #0f1216; --card: #181c22; --text: #e8ebef; --muted: #a3adba;
+      --border: #2b323c; --accent: #7ca5ff; --accent-soft: #1d2638;
+      --warn-bg: #2a2310; --warn-border: #6b5520; --warn-text: #f1dca0;
+      --skeleton: #232932;
+      --shadow: none; --shadow-hover: none; }
+  }
+  @media (prefers-contrast: more) {
+    :root { --muted: var(--text); --border: var(--text); }
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; }
   body { margin: 0; background: var(--bg); color: var(--text);
-    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  main { max-width: 1100px; margin: 0 auto; padding: 40px 16px 64px; }
-  header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 28px; }
-  h1 { margin: 0; font-size: 28px; letter-spacing: -.01em; }
-  .sub { margin: 4px 0 0; color: var(--muted); font-size: 15px; }
-  input[type=search] { width: 260px; max-width: 100%; padding: 10px 14px; border-radius: 10px;
-    border: 1px solid var(--border); background: var(--card); color: var(--text); font: inherit; }
-  input[type=search]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
-  a.card { display: flex; gap: 14px; padding: 18px; background: var(--card); border: 1px solid var(--border);
-    border-radius: 14px; box-shadow: var(--shadow); color: inherit; text-decoration: none;
-    transition: transform .12s ease, border-color .12s ease; min-width: 0; }
-  a.card:hover, a.card:focus-visible { transform: translateY(-2px); border-color: var(--accent); outline: none; }
-  .logo { flex: none; width: 48px; height: 48px; border-radius: 12px; overflow: hidden; display: grid; place-items: center;
+    font: 1rem/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+
+  .skip { position: absolute; left: 16px; top: -100px; z-index: 10; padding: 10px 16px; border-radius: var(--radius-inner);
+    background: var(--card); color: var(--accent); border: 2px solid var(--accent); font-weight: 600; }
+  .skip:focus { top: 16px; }
+
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+  header.top { padding-top: 40px; padding-bottom: 24px; display: flex; flex-wrap: wrap; align-items: end;
+    justify-content: space-between; gap: 16px; }
+  h1 { margin: 0; font-size: 2rem; line-height: 1.15; letter-spacing: -.02em; }
+  .sub { margin: 4px 0 0; color: var(--muted); font-size: .9375rem; }
+
+  .search { position: relative; width: 300px; max-width: 100%; }
+  .search label { display: block; font-size: .875rem; font-weight: 600; margin-bottom: 4px; }
+  .search input { width: 100%; min-height: 44px; padding: 10px 44px 10px 14px; border-radius: var(--radius-inner);
+    border: 1px solid var(--muted); background: var(--card); color: var(--text); font: inherit; }
+  .search input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .search kbd { position: absolute; right: 10px; bottom: 11px; min-width: 22px; padding: 1px 6px; text-align: center;
+    font: 600 .75rem/1.5 ui-monospace, monospace; color: var(--muted); border: 1px solid var(--border);
+    border-radius: 6px; background: var(--bg); pointer-events: none; }
+  .search input:focus ~ kbd, .search input:not(:placeholder-shown) ~ kbd { display: none; }
+  @media (hover: none) { .search kbd { display: none; } }
+
+  .notice { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0 0 16px; padding: 12px 16px;
+    background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn-text); border-radius: var(--radius-inner); }
+  .notice p { margin: 0; flex: 1 1 260px; }
+
+  .grid { list-style: none; margin: 0; padding: 0; display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 16px; }
+  .grid > li { display: flex; min-width: 0; }   /* element estable: el hover és aquí i qui es mou és la targeta */
+  a.card { flex: 1; display: flex; gap: 16px; padding: 16px; background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow); color: inherit; text-decoration: none; min-width: 0; }
+  a.card:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .grid > li:hover a.card, a.card:focus-visible { border-color: var(--accent); box-shadow: var(--shadow-hover); }
+
+  /* Moviment només si l'usuari no ha demanat reduir-lo */
+  @media (prefers-reduced-motion: no-preference) {
+    a.card { transition: transform 300ms var(--ease-out), box-shadow 300ms var(--ease-out), border-color 300ms var(--ease-out); }
+    .grid > li:hover a.card, a.card:focus-visible { transform: translateY(-3px);
+      transition-duration: 150ms; }
+    .grid > li a.card:active { transform: translateY(-1px) scale(.98); transition-duration: 60ms; }
+    .sk { animation: pulse 1.6s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: .55; } }
+  }
+
+  .logo { flex: none; width: 48px; height: 48px; border-radius: var(--radius-inner); overflow: hidden; display: grid; place-items: center;
     background: var(--bg); border: 1px solid var(--border); }
   .logo img { width: 32px; height: 32px; object-fit: contain; }
-  .logo .letter { font-weight: 700; font-size: 22px; color: #fff; width: 100%; height: 100%; display: grid; place-items: center; }
-  .info { min-width: 0; }
-  .name { font-weight: 600; font-size: 17px; margin: 0; overflow-wrap: anywhere; }
-  .desc { margin: 4px 0 8px; color: var(--muted); font-size: 14px;
+  .logo .letter { font-weight: 700; font-size: 1.375rem; color: #fff; width: 100%; height: 100%; display: grid; place-items: center; }
+  .info { min-width: 0; display: flex; flex-direction: column; }
+  .name { font-weight: 600; font-size: 1.0625rem; line-height: 1.3; margin: 0; overflow-wrap: anywhere; }
+  .desc { margin: 4px 0 8px; color: var(--muted); font-size: .875rem;
     display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-  .url { font-size: 13px; color: var(--accent); overflow-wrap: anywhere; }
-  .status { color: var(--muted); padding: 32px 0; text-align: center; }
-  footer { margin-top: 40px; color: var(--muted); font-size: 13px; text-align: center; }
-  footer a { color: inherit; }
+  .meta { margin-top: auto; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: .8125rem; }
+  .url { color: var(--accent); overflow-wrap: anywhere; }
+  .updated { color: var(--muted); }
+
+  /* Esquelet mentre es carrega (mateixa forma que les targetes) */
+  .sk-card { flex: 1; display: flex; gap: 16px; padding: 16px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); }
+  .sk { background: var(--skeleton); border-radius: 6px; }
+  .sk-logo { flex: none; width: 48px; height: 48px; border-radius: var(--radius-inner); }
+  .sk-lines { flex: 1; display: grid; gap: 8px; align-content: start; padding-top: 2px; }
+  .sk-line { height: 12px; }
+
+  .empty { padding: 40px 16px; text-align: center; color: var(--muted); }
+  .empty p { margin: 0 0 16px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 18px;
+    border-radius: var(--radius-inner); border: 1px solid var(--accent); background: var(--accent-soft); color: var(--text);
+    font: 600 .9375rem/1.2 inherit; font-family: inherit; cursor: pointer; }
+  .btn:hover { background: var(--card); }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  footer.wrap { margin-top: 56px; padding-bottom: 40px; color: var(--muted); font-size: .875rem; text-align: center; }
+  footer a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 </style>
 </head>
 <body>
-<main>
-  <header>
-    <div>
-      <h1>Les meves webs</h1>
-      <p class="sub" id="count">Carregant…</p>
-    </div>
-    <input type="search" id="q" placeholder="Cerca una web…" aria-label="Cerca una web">
-  </header>
-  <div class="grid" id="grid"></div>
-  <p class="status" id="status" hidden></p>
-  <footer>
-    Llista generada automàticament a partir dels repositoris de
-    <a href="https://github.com/MartiFarranC" id="ghlink">GitHub</a> amb GitHub Pages activat.
-  </footer>
+<a class="skip" href="#grid">Salta a la llista de webs</a>
+<header class="top wrap">
+  <div>
+    <h1>Les meves webs</h1>
+    <p class="sub" id="count" aria-live="polite">Carregant les webs…</p>
+  </div>
+  <div class="search" role="search">
+    <label for="q">Cerca</label>
+    <input type="search" id="q" placeholder="Nom o descripció" autocomplete="off" spellcheck="false" enterkeyhint="search">
+    <kbd aria-hidden="true">/</kbd>
+  </div>
+</header>
+<main class="wrap">
+  <div class="notice" id="notice" role="status" hidden>
+    <p id="notice-text"></p>
+    <button class="btn" type="button" id="retry">Torna-ho a provar</button>
+  </div>
+  <ul class="grid" id="grid" tabindex="-1" aria-label="Webs publicades"></ul>
+  <div class="empty" id="empty" hidden>
+    <p id="empty-text"></p>
+    <button class="btn" type="button" id="clear">Esborra la cerca</button>
+  </div>
 </main>
+<footer class="wrap">
+  Llista generada automàticament a partir dels repositoris de
+  <a href="https://github.com/MartiFarranC" id="ghlink">GitHub</a> amb GitHub Pages activat.
+</footer>
 
 <script>
 (() => {
@@ -80,14 +159,14 @@
   const CACHE_KEY = "webs-cache-v2";
   const CACHE_MS = 30 * 60 * 1000;   // 30 min, per no gastar el límit de l'API de GitHub
 
-  const grid = document.getElementById("grid");
-  const status = document.getElementById("status");
-  const count = document.getElementById("count");
-  const q = document.getElementById("q");
+  const $ = id => document.getElementById(id);
+  const grid = $("grid"), count = $("count"), q = $("q");
+  const notice = $("notice"), noticeText = $("notice-text"), empty = $("empty"), emptyText = $("empty-text"), clearBtn = $("clear");
   let sites = [];
+  let loading = true;
 
   const store = {
-    get() { try { const c = JSON.parse(localStorage.getItem(CACHE_KEY)); return c && Date.now() - c.t < CACHE_MS ? c.d : null; } catch { return null; } },
+    get() { try { return JSON.parse(localStorage.getItem(CACHE_KEY)); } catch { return null; } },
     set(d) { try { localStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), d })); } catch {} }
   };
 
@@ -100,11 +179,19 @@
   }
   const prettyName = n => n.replace(/[-_]+/g, " ").replace(/^\w/, c => c.toUpperCase());
 
+  const rtf = new Intl.RelativeTimeFormat("ca", { numeric: "auto" });
+  function ago(iso) {
+    const s = (new Date(iso) - Date.now()) / 1000;
+    const steps = [[60, "second"], [60, "minute"], [24, "hour"], [30, "day"], [12, "month"], [Infinity, "year"]];
+    let v = s;
+    for (const [n, unit] of steps) { if (Math.abs(v) < n) return rtf.format(Math.round(v), unit); v /= n; }
+  }
+
   async function fetchRepos() {
     const all = [];
     for (let page = 1; page < 10; page++) {
       const res = await fetch(`https://api.github.com/users/${USER}/repos?per_page=100&page=${page}&sort=updated`);
-      if (!res.ok) throw new Error(res.status === 403 ? "S'ha superat el límit de l'API de GitHub. Torna-ho a provar d'aquí una estona." : `Error de GitHub (${res.status})`);
+      if (!res.ok) throw new Error(res.status === 403 ? "rate" : `http ${res.status}`);
       const batch = await res.json();
       all.push(...batch);
       if (batch.length < 100) break;
@@ -134,14 +221,16 @@
     } catch { return s; }
   }
 
+  // Lluminositat 34 %: el text blanc hi té prou contrast (≥ 3:1 per a lletra gran) amb qualsevol to
   function colorFor(str) {
     let h = 0; for (const c of str) h = (h * 31 + c.charCodeAt(0)) % 360;
-    return `hsl(${h} 55% 48%)`;
+    return `hsl(${h} 60% 34%)`;
   }
 
   function logoEl(s) {
     const box = document.createElement("div");
     box.className = "logo";
+    box.setAttribute("aria-hidden", "true");
     const letter = () => {
       box.innerHTML = "";
       const l = document.createElement("span");
@@ -150,7 +239,7 @@
       box.appendChild(l);
     };
     const candidates = [s.icon, new URL("favicon.ico", s.url).href, new URL("favicon.svg", s.url).href, new URL("favicon.png", s.url).href].filter(Boolean);
-    const img = new Image(); img.alt = ""; img.loading = "lazy";
+    const img = new Image(); img.alt = ""; img.loading = "lazy"; img.decoding = "async";
     let i = 0;
     img.onerror = () => { i++; if (i < candidates.length) img.src = candidates[i]; else letter(); };
     img.src = candidates[0];
@@ -158,45 +247,114 @@
     return box;
   }
 
+  function skeleton(n = 6) {
+    grid.innerHTML = "";
+    grid.setAttribute("aria-busy", "true");
+    for (let i = 0; i < n; i++) {
+      const li = document.createElement("li");
+      li.setAttribute("aria-hidden", "true");
+      li.innerHTML = '<div class="sk-card"><div class="sk sk-logo"></div><div class="sk-lines">' +
+        '<div class="sk sk-line" style="width:55%;height:16px"></div><div class="sk sk-line" style="width:95%"></div>' +
+        '<div class="sk sk-line" style="width:70%"></div><div class="sk sk-line" style="width:45%;margin-top:4px"></div></div></div>';
+      grid.appendChild(li);
+    }
+  }
+
   function render() {
     const term = q.value.trim().toLowerCase();
     const list = sites.filter(s => !term || [s.name, s.title, s.desc, s.repo].join(" ").toLowerCase().includes(term));
     grid.innerHTML = "";
+    grid.removeAttribute("aria-busy");
     for (const s of list) {
+      const li = document.createElement("li");
       const a = document.createElement("a");
-      a.className = "card"; a.href = s.url; a.target = "_blank"; a.rel = "noopener";
+      a.className = "card"; a.href = s.url;
       a.appendChild(logoEl(s));
       const info = document.createElement("div"); info.className = "info";
       const n = document.createElement("p"); n.className = "name"; n.textContent = s.title || s.name;
       const d = document.createElement("p"); d.className = "desc"; d.textContent = s.desc || `Repositori ${s.repo}`;
-      const u = document.createElement("div"); u.className = "url"; u.textContent = s.url.replace(/^https?:\/\//, "").replace(/\/$/, "");
-      info.append(n, d, u); a.appendChild(info); grid.appendChild(a);
+      const meta = document.createElement("div"); meta.className = "meta";
+      const u = document.createElement("span"); u.className = "url"; u.textContent = s.url.replace(/^https?:\/\//, "").replace(/\/$/, "");
+      meta.appendChild(u);
+      if (s.updated) {
+        const t = document.createElement("time"); t.className = "updated"; t.dateTime = s.updated;
+        t.title = new Date(s.updated).toLocaleString("ca");
+        t.textContent = `Actualitzada ${ago(s.updated)}`;
+        meta.appendChild(t);
+      }
+      info.append(n, d, meta); a.appendChild(info); li.appendChild(a); grid.appendChild(li);
     }
-    count.textContent = `${sites.length} ${sites.length === 1 ? "web publicada" : "webs publicades"} a GitHub Pages`;
-    status.hidden = list.length > 0;
-    if (!list.length) status.textContent = sites.length ? "Cap web coincideix amb la cerca." : "Encara no hi ha cap web publicada.";
+    const total = `${sites.length} ${sites.length === 1 ? "web publicada" : "webs publicades"} a GitHub Pages`;
+    count.textContent = term ? `${list.length} de ${total}` : total;
+
+    // Estat buit: diferenciem "cap resultat" de "encara no n'hi ha cap"
+    empty.hidden = list.length > 0 || loading;
+    if (!list.length && !loading) {
+      emptyText.textContent = term && sites.length
+        ? `Cap web coincideix amb «${q.value.trim()}». Prova amb una altra paraula.`
+        : "Encara no hi ha cap web publicada a GitHub Pages.";
+      clearBtn.hidden = !term;
+    }
+  }
+
+  function showNotice(msg) { noticeText.textContent = msg; notice.hidden = !msg; }
+
+  async function refresh() {
+    const base = await fetchRepos();
+    if (!sites.length) { sites = base; loading = false; render(); }
+    const enriched = (await Promise.all(base.map(enrich))).filter(s => !s.dead);
+    sites = enriched; store.set(sites); loading = false; showNotice(""); render();
   }
 
   async function load() {
     const cached = store.get();
-    if (cached) { sites = cached; render(); return; }
+    // Mostrem la còpia guardada a l'instant (encara que sigui antiga) i, si cal, l'actualitzem al darrere
+    if (cached?.d?.length) { sites = cached.d; loading = false; render(); }
+    else skeleton();
+    if (cached && Date.now() - cached.t < CACHE_MS) return;
     try {
-      const base = await fetchRepos();
-      sites = base; render();
-      sites = (await Promise.all(base.map(enrich))).filter(s => !s.dead);
-      store.set(sites); render();
+      await refresh();
     } catch (e) {
-      // Sense API: fem servir la llista de reserva perquè la pàgina no quedi buida
       console.warn(e);
+      const why = e.message === "rate"
+        ? "GitHub ha limitat les consultes des d'aquesta xarxa."
+        : navigator.onLine === false ? "No hi ha connexió a internet." : "No s'ha pogut contactar amb GitHub.";
+      if (sites.length) { showNotice(`${why} Es mostra la llista guardada, que pot no estar al dia.`); return; }
+      // Sense API ni còpia: fem servir la llista de reserva perquè la pàgina no quedi buida
+      showNotice(`${why} Es mostra una llista de reserva que pot no estar completa.`);
       sites = FALLBACK.map(name => ({ repo: name, name: prettyName(name), desc: "", url: siteUrl({ name }) }));
-      render();
+      loading = false; render();
       sites = (await Promise.all(sites.map(enrich))).filter(s => !s.dead);
       render();
     }
   }
 
-  document.getElementById("ghlink").textContent = USER;
-  q.addEventListener("input", render);
+  // La cerca queda a l'adreça (?q=), així es pot compartir i el botó Enrere la conserva
+  const params = new URLSearchParams(location.search);
+  if (params.get("q")) q.value = params.get("q");
+  function syncUrl() {
+    const u = new URL(location.href);
+    if (q.value.trim()) u.searchParams.set("q", q.value.trim()); else u.searchParams.delete("q");
+    history.replaceState(null, "", u);
+  }
+
+  q.addEventListener("input", () => { render(); syncUrl(); });
+  q.addEventListener("keydown", e => { if (e.key === "Escape" && q.value) { e.preventDefault(); q.value = ""; render(); syncUrl(); } });
+  clearBtn.addEventListener("click", () => { q.value = ""; render(); syncUrl(); q.focus(); });
+  $("retry").addEventListener("click", async () => {
+    const btn = $("retry"); if (btn.disabled) return;
+    btn.disabled = true; btn.textContent = "Provant…";
+    try { await refresh(); } catch { showNotice("GitHub encara no respon. Es manté la llista que veus; torna-ho a provar d'aquí una estona."); }
+    btn.disabled = false; btn.textContent = "Torna-ho a provar";
+  });
+  // Drecera "/" per anar al cercador (com a GitHub o YouTube)
+  document.addEventListener("keydown", e => {
+    if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) {
+      e.preventDefault(); q.focus(); q.select();
+    }
+  });
+
+  $("ghlink").textContent = USER;
   load();
 
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
